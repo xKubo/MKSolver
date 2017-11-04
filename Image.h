@@ -16,6 +16,7 @@ namespace Image
 	struct CGrayScaleImage;
 
 	using CNativeImage = cv::Mat;
+	using CRect = cv::Rect;
 
 	struct CImage
 	{
@@ -23,6 +24,11 @@ namespace Image
 		CResolution Resolution() const
 		{
 			return { m_Image.rows, m_Image.cols };
+		}
+
+		CRect Rect() const
+		{
+			return { 0, 0, m_Image.rows, m_Image.cols };
 		}
 
 		CNativeImage& get() const

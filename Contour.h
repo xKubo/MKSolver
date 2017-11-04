@@ -6,8 +6,6 @@ namespace Image
 	using TContData = vector<vector<cv::Point>>;
 	using TContHierarchy = std::vector<cv::Vec4i>;
 
-	using CRect = cv::Rect;
-
 	struct CContour
 	{
 		CContour(vector<cv::Point> cd) : m_Contour(cd) {}
