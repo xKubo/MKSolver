@@ -43,6 +43,8 @@ namespace Image
 	{
 		CRGBImage() = default;
 		CRGBImage(CNativeImage m) : CImage(move(m)) {}
+		CRGBImage(CResolution r) : CImage(cv::Mat{ r.W, r.H, CV_8UC3})
+		{}
 	};
 
 	inline CRGBImage LoadImage(const string &FileName)

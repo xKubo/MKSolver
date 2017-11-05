@@ -5,17 +5,24 @@
 
 namespace Stats
 {
-	
+	using namespace	Common;
+
 	template <typename T, typename FPred, typename FGetKey >
 	struct CHistogram
 	{
 		using TObject = T;
-		using TKey = decltype(FGetKey(std::declval(T)));
+		//using TKey = decltype(FGetKey(std::declval<TObject>()));
 		CHistogram() = default;
 		
-		CHistogram(FPred p) : m_Pred(p)
+		CHistogram(FPred p, FGetKey k) : m_Pred(p), m_Key(k)
 		{
 
+		}
+
+		void Add(const TObject& o)
+		{
+			auto it = lower_bound(m_Objects.begin(), m_Objects.end(), o, m_Pred);
+			m_Objects.emplace(it, o);
 		}
 
 		template <typename TRange>
@@ -30,7 +37,7 @@ namespace Stats
 			return m_Objects;
 		}
 
-		TKey GetKey(const TObject& o)
+		auto GetKey(const TObject& o) const
 		{
 			return m_Key(o);
 		}
@@ -42,13 +49,26 @@ namespace Stats
 		FGetKey m_Key;
 	};
 
-	struct CHistogramWindow
+
+
+	template <typename T, typename FPred, typename FGetKey>
+	inline auto MakeHistogram(FGetKey k, FPred p)
 	{
-		CHistogramWindow(GUI::CWindow Window, Image::CResolution HistRes) : 
-			m_Window(Window),
-			m_Res(HistRes),
+		return CHistogram<T, FPred, FGetKey>(p, k);
+	}
+
+	template <typename T, typename FGetKey>
+	inline auto MakeHistogram(FGetKey k)
+	{
+		return MakeHistogram<T>(k, [k](const T& t1, const T& t2) { return k(t1) < k(t2); });
+	}
+
+
+	struct CHistogramGraph
+	{
+		CHistogramGraph(Image::CResolution HistRes) : 
 			m_Image(HistRes),
-			m_Counts(m_Res.W)
+			m_Counts(HistRes.W)
 		{
 			
 		}
@@ -57,25 +77,36 @@ namespace Stats
 		void Update(const CHistogram<T, FPred, FGetKey>& h)
 		{
 			const auto& os = h.Objects();
-			
+			if (os.empty())
+				return;
+			vector<int> ObjectKeys;
 			fill(m_Counts.begin(), m_Counts.end(), 0);
 			for (int i = 0; i < os.size(); ++i)
 			{
-				int k = h.GetKey(o);
-				m_Counts[k]++;
-				
+				ObjectKeys.push_back(h.GetKey(os[i]));				
 			}
 
-			cv::rectangle(m_Image, m_Image.Rect(), 0, CV_FILLED);
-			for (int i=0; i<m_Image.get().rows; ++i)
-				cv::line(m_Image, Point{i, 0}, Point{i, m_Counts[i] }, 255);
+			int MaxVal = *std::max_element(ObjectKeys.begin(), ObjectKeys.end());
+			int ValPerCol = MaxVal / m_Counts.size() + 1;
 
+			assert(ValPerCol != 0);
+
+			for (int k : ObjectKeys)
+			{
+				m_Counts[k / ValPerCol]++;
+			}
+
+			cv::rectangle(m_Image.get(), m_Image.Rect(), 0, CV_FILLED);
+			for (int i=0; i<m_Image.get().rows; ++i)
+				cv::line(m_Image.get(), cv::Point{ i, m_Image.Resolution().H }, cv::Point{ i, m_Image.Resolution().H - m_Counts[i] }, {0,255,0});
+		}
+
+		Image::CRGBImage& Image()
+		{
+			return m_Image;
 		}
 	private:
-
 		vector<int> m_Counts;
-		Image::CResolution m_Res;
 		Image::CRGBImage m_Image;
-		GUI::CWindow m_Window;
 	};
 }

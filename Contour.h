@@ -8,12 +8,21 @@ namespace Image
 
 	struct CContour
 	{
-		CContour(vector<cv::Point> cd) : m_Contour(cd) {}
+		CContour(vector<cv::Point> cd) : m_Contour(cd) 
+		{
+			m_Area = cv::contourArea(m_Contour);
+		}
 		CRect BoundingBox() const
 		{
 			return cv::boundingRect(m_Contour);
 		}
+
+		auto Area() const
+		{
+			return m_Area;
+		}
 	private:
+		double m_Area;
 		vector<cv::Point> m_Contour;
 	};
 
