@@ -1,5 +1,6 @@
 #pragma once
 
+#include <numeric>
 #include "GUI.h"
 #include "Image.h"
 
@@ -74,20 +75,23 @@ namespace Stats
 		}
 
 		template <typename T, typename FPred, typename FGetKey >
-		void Update(const CHistogram<T, FPred, FGetKey>& h)
+		void Update(const CHistogram<T, FPred, FGetKey>& h, int MinArea, int MaxArea)
 		{
 			const auto& os = h.Objects();
 			if (os.empty())
 				return;
 			vector<int> ObjectKeys;
 			fill(m_Counts.begin(), m_Counts.end(), 0);
-			for (int i = 0; i < os.size(); ++i)
+			for (int i = 0; i < static_cast<int>(os.size()); ++i)
 			{
-				ObjectKeys.push_back(h.GetKey(os[i]));				
+				ObjectKeys.push_back(h.GetKey(os[i]));
 			}
 
+			int Avg = std::accumulate(ObjectKeys.begin(), ObjectKeys.end(), 0) / ObjectKeys.size();
+			std::cout << Avg << std::endl;
 			int MaxVal = *std::max_element(ObjectKeys.begin(), ObjectKeys.end());
 			int ValPerCol = MaxVal / m_Counts.size() + 1;
+
 
 			assert(ValPerCol != 0);
 
@@ -97,9 +101,16 @@ namespace Stats
 			}
 
 			cv::rectangle(m_Image.get(), m_Image.Rect(), 0, CV_FILLED);
-			for (int i=0; i<m_Image.get().rows; ++i)
-				cv::line(m_Image.get(), cv::Point{ i, m_Image.Resolution().H }, cv::Point{ i, m_Image.Resolution().H - m_Counts[i] }, {0,255,0});
+
+			cv::line(m_Image.get(), cv::Point{ MinArea / ValPerCol, 0 }, cv::Point{ MinArea / ValPerCol, m_Image.Resolution().W }, cv::Scalar{ 255, 255, 255 });
+			cv::line(m_Image.get(), cv::Point{ MaxArea / ValPerCol, 0 }, cv::Point{ MaxArea / ValPerCol, m_Image.Resolution().W }, cv::Scalar{ 255, 255, 255 });
+
+
+
+			for (int i = 0; i < m_Image.get().rows; ++i)
+				cv::line(m_Image.get(), cv::Point{ i, m_Image.Resolution().H }, cv::Point{ i, m_Image.Resolution().H - m_Counts[i] }, { 0,255,0 });
 		}
+
 
 		Image::CRGBImage& Image()
 		{
